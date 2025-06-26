@@ -7,9 +7,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
   Command,
-  CommandEmpty,
   CommandGroup,
-  CommandInput,
   CommandItem,
   CommandList,
 } from "@/components/ui/command"
@@ -19,35 +17,31 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 
-const frameworks = [
-  {
-    value: "next.js",
-    label: "Next.js",
-  },
-  {
-    value: "sveltekit",
-    label: "SvelteKit",
-  },
-  {
-    value: "nuxt.js",
-    label: "Nuxt.js",
-  },
-  {
-    value: "remix",
-    label: "Remix",
-  },
-  {
-    value: "astro",
-    label: "Astro",
-  },
-]
-
-interface Props {
-  value?: string
-  onChange?: (value: string) => void
+export type Template = {
+  id: string;             // musi byt rovnake ako id sablony v rendereri
+  name: string;
+  image: string;
 }
 
-export function TemplateSelect({ value, onChange }: Props) {
+export const Templates = [
+  {
+    id: "hofat-front",
+    name: "Ho FAT or.3 FRONT SIDE",
+    image: "hofat-or3-front-side.png",
+  },
+  {
+    id: "hofat-or3-side-side",
+    name: "Ho FAT or.3 SIDE SIDE",
+    image: "hofat-or3-side-side.png",
+  }
+] as Template[];
+
+interface Props {
+  selected: Template
+  onChange?: (template: Template) => void
+}
+
+export function TemplateSelect({ selected, onChange }: Props) {
   const [open, setOpen] = React.useState(false)
 
   return (
@@ -59,25 +53,24 @@ export function TemplateSelect({ value, onChange }: Props) {
           aria-expanded={open}
           className="w-[200px] justify-between"
         >
-          {value
-            ? frameworks.find((framework) => framework.value === value)?.label
-            : "Select framework..."}
+          {selected
+            ? Templates.find((template) => template.id === selected.id)?.name
+            : "Vyberte šablónu..."}
           <ChevronsUpDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[200px] p-0">
+      <PopoverContent className="w-[240px] p-0">
         <Command>
-          <CommandInput placeholder="Search framework..." />
           <CommandList>
-            <CommandEmpty>No framework found.</CommandEmpty>
             <CommandGroup>
-              {frameworks.map((framework) => (
+              {Templates.map(template => (
                 <CommandItem
-                  key={framework.value}
-                  value={framework.value}
+                  key={template.id}
+                  value={template.name}
                   onSelect={(currentValue) => {
-                    if (onChange) {
-                      onChange(currentValue === value ? "" : currentValue)
+                    const currentTemplate = Templates.find(t => t.name === currentValue)
+                    if (onChange && currentTemplate) {
+                      onChange(currentTemplate)
                     }
                     setOpen(false)
                   }}
@@ -85,10 +78,10 @@ export function TemplateSelect({ value, onChange }: Props) {
                   <CheckIcon
                     className={cn(
                       "mr-2 h-4 w-4",
-                      value === framework.value ? "opacity-100" : "opacity-0"
+                      selected?.id === template.id ? "opacity-100" : "opacity-0"
                     )}
                   />
-                  {framework.label}
+                  {template.name}
                 </CommandItem>
               ))}
             </CommandGroup>
