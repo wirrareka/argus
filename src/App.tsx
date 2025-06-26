@@ -31,11 +31,12 @@ function App() {
       .map(line => line.trim())
       .filter(line => line.length > 0)
       .map(line => {
-        const prefix = `${line.split('-')[0]}-`;
+        const code = line.trim().replace(/\u2013/g, '-');
+        const prefix = `${code.split('-')[0]}-`;
         const useDash = DashedCodes.includes(prefix);
         return {
-          code: line,
-          barcode: encodeCode128(useDash ? line : line.replace(/-/g, '')),
+          code,
+          barcode: encodeCode128(useDash ? code : code.replace(/-/g, '')),
           prefix: line.split('-')[0]
         }
       });
@@ -44,7 +45,6 @@ function App() {
     try {
       const {pdfURL} = await getPDF(template.id, stickers);
       setIsLoading(false);
-      // Pokus sa otvoriť PDF v novom okne
       const newWindow = window.open(pdfURL, '_blank');
       if (newWindow) {
         // PDF sa úspešne otvorilo v novom okne
