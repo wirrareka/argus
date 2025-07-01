@@ -69,7 +69,7 @@ function App() {
     <div className="min-h-svh w-full h-full overflow-hidden ">
       <div className={"w-full flex items-center justify-center h-[93px]"}>
         <div className="flex-2 flex justify-center">
-          <img src={logo} alt="Logo" className="h-auto mx-auto max-w-28"/>
+          <img src={logo} alt="Logo" className="h-auto mx-auto max-w-48"/>
         </div>
         <div className="flex-3 pr-8 pl-8">
           <div className={"text-sm"}>Etiketa:</div>
@@ -95,8 +95,17 @@ function App() {
 
           <div className="flex">
             <div className="flex-1 pr-8 pl-8">
-              <div className="text-xl text-center mb-4 font-bold">
-                Generovať zo súboru
+              <div className="flex w-full">
+                <div className="text-xl mb-4 font-bold flex-1">
+                  Generovať zo súboru
+                </div>
+
+                <Button variant="outline" className="bg-black text-white" onClick={getTemplate}>
+                  Vzor
+                  <div>
+                    <DownloadIcon/>
+                  </div>
+                </Button>
               </div>
               <DropZone
                 acceptedTypes=".xlsx"
@@ -113,17 +122,12 @@ function App() {
                 }}
               />
 
-              <Button className={"mt-8"} variant="outline" onClick={getTemplate}>
-                Vzorová šablóna
-                <div className="text-green-700">
-                  <DownloadIcon/>
-                </div>
-              </Button>
             </div>
             <div className="flex-1 pr-8 pl-8">
-              <div className="text-xl text-center mb-4 font-bold">
+              <div className="text-xl mb-4 font-bold">
                 Generovať zo zoznamu
               </div>
+
               <textarea
                 value={codesText}
                 onChange={(e) => setCodesText(e.target.value)}
