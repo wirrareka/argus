@@ -8,6 +8,7 @@ export type Sticker = {
   code: string
   barcode: string
   prefix: string
+  lot: string
 }
 
 export const getPDF = async (templateId: string, stickers: Sticker[]) => {
@@ -55,12 +56,36 @@ export const triggerDownload = (blobUrl: string, filename: string) => {
 };
 
 
+export type ExcelRow = {
+  code: string
+  lot: string
+}
+
 export interface ParseResult {
-  data: (string | number | null)[];
+  data: ExcelRow[];
   error?: string;
 }
 
-export const parseExcelFirstColumn = async (files: FileList | null): Promise<ParseResult> => {
+const cellToString = (cellValue: XLSX.CellValue): string => {
+  if (cellValue === null || cellValue === undefined) {
+    return '';
+  } else if (typeof cellValue === 'object' && 'richText' in cellValue) {
+    // Pre rich text objekty - extrahuj text zo všetkých častí
+    const richTextParts = cellValue.richText as Array<{ text: string }>;
+    return richTextParts.map(part => part.text).join('');
+  } else if (typeof cellValue === 'object' && 'result' in cellValue) {
+    // Pre formula objekty
+    return String((cellValue as {result: string}).result ?? '');
+  } else if (typeof cellValue === 'object' && 'hyperlink' in cellValue) {
+    // Pre hyperlink objekty
+    return (cellValue as {text: string}).text || (cellValue as {hyperlink: string}).hyperlink;
+  }
+  return String(cellValue);
+};
+
+// Prvý stĺpec = kód produktu, druhý stĺpec = LOT.
+// LOT sa opakuje pre ďalšie riadky, kým sa v stĺpci neobjaví nové číslo.
+export const parseExcelCodes = async (files: FileList | null): Promise<ParseResult> => {
   try {
     // Skontroluj či sú súbory vybrané
     if (!files || files.length === 0) {
@@ -86,32 +111,24 @@ export const parseExcelFirstColumn = async (files: FileList | null): Promise<Par
       return { data: [], error: 'Excel súbor neobsahuje žiadne worksheety' };
     }
 
-    const firstColumnData: (string | number | null)[] = [];
+    const rows: ExcelRow[] = [];
+    let currentLot = '';
 
-    // Iteruj cez riadky a získaj hodnoty z prvého stĺpca
-    worksheet.eachRow((row) => {
-      const cellValue = row.getCell(1).value;
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) return; // Preskoč hlavičku
 
-      // Spracuj hodnotu bunky
-      if (cellValue === null || cellValue === undefined) {
-        firstColumnData.push(null);
-      } else if (typeof cellValue === 'object' && 'richText' in cellValue) {
-        // Pre rich text objekty - extrahuj text zo všetkých častí
-        const richTextParts = cellValue.richText as Array<{ text: string }>;
-        const combinedText = richTextParts.map(part => part.text).join('');
-        firstColumnData.push(combinedText);
-      } else if (typeof cellValue === 'object' && 'result' in cellValue) {
-        // Pre formula objekty
-        firstColumnData.push((cellValue as {result: string}).result);
-      } else if (typeof cellValue === 'object' && 'hyperlink' in cellValue) {
-        // Pre hyperlink objekty
-        firstColumnData.push((cellValue as {text: string}).text || (cellValue as {hyperlink: string}).hyperlink);
-      } else {
-        firstColumnData.push(cellValue as string | number);
+      const lot = cellToString(row.getCell(2).value).trim();
+      if (lot.length > 0) {
+        currentLot = lot;
+      }
+
+      const code = cellToString(row.getCell(1).value).trim();
+      if (code.length > 0) {
+        rows.push({ code, lot: currentLot });
       }
     });
 
-    return { data: firstColumnData };
+    return { data: rows };
 
   } catch (error) {
     console.error('Chyba pri parsovaní Excel súboru:', error);

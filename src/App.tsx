@@ -6,12 +6,13 @@ import {DashedCodes} from "@/code-list.ts";
 import { DropZone } from "@/drop-zone.tsx";
 import {DownloadIcon} from "lucide-react";
 import {encodeCode128} from "@/code128.ts";
-import {getPDF, parseExcelFirstColumn, triggerDownload} from "@/common.ts";
+import {getPDF, parseExcelCodes, triggerDownload} from "@/common.ts";
 import logo from './assets/logo.png';
 
 function App() {
   const [ template, setTemplate ] = useState<Template>(Templates[0]);
   const [ codesText, setCodesText ] = useState<string>('');
+  const [ lotText, setLotText ] = useState<string>('');
   const [ isLoading, setIsLoading ] = useState<boolean>(false);
 
   const getTemplate = useCallback(() => {
@@ -31,13 +32,16 @@ function App() {
       .map(line => line.trim())
       .filter(line => line.length > 0)
       .map(line => {
-        const code = line.trim().replace(/\u2013/g, '-');
+        // Riadok môže obsahovať aj LOT oddelený tabulátorom (import z XLS / vloženie z Excelu)
+        const [ codePart, lotPart ] = line.split('\t');
+        const code = codePart.trim().replace(/\u2013/g, '-');
         const prefix = `${code.split('-')[0]}-`;
         const useDash = DashedCodes.includes(prefix);
         return {
           code,
           barcode: encodeCode128(useDash ? code : code.replace(/-/g, '')),
-          prefix: line.split('-')[0]
+          prefix: code.split('-')[0],
+          lot: lotPart?.trim() || lotText.trim()
         }
       });
 
@@ -63,7 +67,7 @@ function App() {
       console.error('Chyba pri sťahovaní PDF:', error);
       throw error;
     }
-  }, [ codesText, template.id ]);
+  }, [ codesText, lotText, template.id ]);
 
   return (
     <div className="min-h-svh w-full h-full overflow-hidden ">
@@ -113,11 +117,11 @@ function App() {
                 onFilesSelected={async (files) => {
                   const file = files[0];
                   if (file) {
-                    const result = await parseExcelFirstColumn(files);
-                    const codes = result.data as string[];
-                    console.log('codes', codes);
-                    codes.shift(); // Odstrániť hlavičku
-                    setCodesText(codes.join('\n'));
+                    const result = await parseExcelCodes(files);
+                    console.log('codes', result.data);
+                    setCodesText(result.data
+                      .map(({code, lot}) => lot ? `${code}\t${lot}` : code)
+                      .join('\n'));
                   }
                 }}
               />
@@ -133,6 +137,16 @@ function App() {
                 onChange={(e) => setCodesText(e.target.value)}
                 className="w-full h-[400px] p-4 border border-gray-300 rounded-lg"
                 placeholder="Sem napíšte alebo vložte kódy..."/>
+
+              <label className="block mt-4">
+                <span className="text-xl font-bold">LOT:</span>
+                <input
+                  type="text"
+                  value={lotText}
+                  onChange={(e) => setLotText(e.target.value)}
+                  className="w-full mt-2 p-4 border border-gray-300 rounded-lg"
+                  placeholder="Číslo LOT pre celú sériu..."/>
+              </label>
 
               <div className="flex justify-end mr-8 w-full mt-8">
                 <Button

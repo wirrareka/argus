@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# deploy artefakty a LibreOffice lock subory
+argus/
+argus.tgz
+.~lock.*#
